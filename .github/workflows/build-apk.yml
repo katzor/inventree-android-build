@@ -1,0 +1,49 @@
+name: Собрать InvenTree APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Скачать официальные исходники InvenTree 1.1.0
+        uses: actions/checkout@v4
+        with:
+          repository: inventree/inventree-app
+          ref: '1.1.0'
+          persist-credentials: false
+
+      - name: Подготовить Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Подготовить Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: stable
+
+      - name: Подготовить переводы
+        working-directory: lib/l10n
+        run: python3 collect_translations.py
+
+      - name: Собрать APK
+        run: |
+          flutter pub get
+          flutter build apk --debug
+
+      - name: Сохранить APK для скачивания
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvenTree-1.1.0-Android
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
